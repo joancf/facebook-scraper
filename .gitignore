@@ -2,3 +2,6 @@
 *.log
 *.json
 /photos
+env/
+
+*.gdf

@@ -1,29 +1,52 @@
-import os, datetime, time, csv
+import os, datetime, time, csv, threading
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from datetime import datetime
-from sys import argv
+from tkinter import *
 
-print("to run it, it has several parameters , a single parameter 1/0 inidcates if mutual friends only or not is used \n ")
-print("two paremeters is to gneneate the csv as the original software, the first parameter is the input csv andhte second the mutual friends \n ")
-print("\n" * 4)
+class App:
 
-# Configure browser session
-wd_options = Options()
-wd_options.add_argument("--disable-notifications")
-wd_options.add_argument("--disable-infobars")
-wd_options.add_argument("--mute-audio")
-browser = webdriver.Chrome(chrome_options=wd_options)
-user=""
-userName=""
-userId=""
-edges=[]
+    def __init__(self, master):
+
+        frame = Frame(master)
+        frame.pack()
+
+
+
+        self.Mutual = Button(frame, text="push befor start  to expand to all friends", command=self.mutual)
+        self.Mutual.pack(side=LEFT)
+        self.hi_there = Button(frame, text="push after login", command=self.say_hi)
+        self.hi_there.pack(side=LEFT)   
+        self.stop = Button(frame, text="STOP and Save", fg="red", command=self.stop)
+        self.stop.pack(side=LEFT)
+ 
+        self.button = Button(frame, text="QUIT", fg="red", command=frame.quit)
+        self.button.pack(side=LEFT)
+    def handle_my_custom_event(event):
+        frame.quit
+
+ 
+    def say_hi(self):
+        def callback():
+            friends=scrape_1st_degrees()
+            scrape_friends(friends)
+        t = threading.Thread(target=callback)
+        t.start()
+
+        
+
+    def mutual(self):
+        global mutualOnly
+        mutualOnly=0
+
+    def stop(self):
+        global stop
+        stop=True
 
 # --------------- Ask user to log in -----------------
 def fb_login():
     print("Opening browser...")
     browser.get("https://www.facebook.com/")
-    a = input("Please log into facebook and press enter after the page loads...")
 
 # --------------- Scroll to bottom of page -----------------
 def scroll_to_bottom():
@@ -77,25 +100,6 @@ def scan_friends():
     print('Found %r friends on page!' % len(friends))
     return friends
 
-# ----------------- Load list from CSV -----------------
-def load_csv(filename):
-    inact = 0
-    myfriends = []
-    with open(filename, 'r') as input_csv:
-        reader = csv.DictReader(input_csv)
-        for idx,row in enumerate(reader):
-            if row['active'] is '1':
-                myfriends.append({
-                    "name":row['B_name'],
-                    "uid":row['B_id']
-                    })
-            else:
-                print("Skipping %s (inactive)" % row['B_name'])
-                inact = inact + 1
-    print("%d friends in imported list" % (idx+1))
-    print("%d ready for scanning (%d inactive)" % (idx-inact+1, inact))
-
-    return myfriends
 
 # --------------- Scrape 1st degree connections ---------------
 def scrape_1st_degrees():
@@ -125,9 +129,12 @@ def scrape_1st_degrees():
 # --------------- Scrape 2nd degree connections. ---------------
 #This can take several days if you have a lot of friends!!
 def scrape_friends(friends):
+    global stop
     idx=1
     myfriends=list(friends.keys())
     for friend in myfriends :
+        if stop:
+            break
         #Load URL of friend's friend page
         if mutualOnly is "0" :
             scrape_url = "https://www.facebook.com/"+ friend + "/friends?source_ref=pb_friends_tl"
@@ -138,6 +145,8 @@ def scrape_friends(friends):
         #Scan your friends' Friends page (2nd-degree connections)
         idx+=1 
         print("%d) %s" % (idx, friends[friend]+"--"+ scrape_url))
+        if idx>4:
+            break
         scroll_to_bottom()
         their_friends = scan_friends()
 
@@ -161,11 +170,25 @@ def scrape_friends(friends):
     print ('Saved!')
 
 # --------------- Start Scraping ---------------
+
+# Configure browser session
+wd_options = Options()
+wd_options.add_argument("--disable-notifications")
+wd_options.add_argument("--disable-infobars")
+wd_options.add_argument("--mute-audio")
+browser = webdriver.Chrome(chrome_options=wd_options)
+user=""
+userName=""
+userId=""
+edges=[]
+mutualOnly =1
+stop=False
 now = datetime.now()
 fb_login()
-if len(argv) is 2:
-    script, mutualOnly = argv
-    friends=scrape_1st_degrees()
-    scrape_friends(friends)
-else:
-    print("Invalid # of arguments specified. Use 1/0 to indicate if only mutual frriends(faster)  must be scanned or not.")
+root = Tk()
+
+
+app = App(root)
+
+root.mainloop()
+

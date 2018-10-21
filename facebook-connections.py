@@ -12,29 +12,43 @@ class App:
         frame.pack()
 
 
-
-        self.Mutual = Button(frame, text="push befor start  to expand to all friends", command=self.mutual)
-        self.Mutual.pack(side=LEFT)
-        self.hi_there = Button(frame, text="push after login", command=self.say_hi)
-        self.hi_there.pack(side=LEFT)   
+        self.explain = Label(root, text='Waiting to intialize facebook!')
+        self.explain.pack(padx=15, pady=15, ipadx=15, ipady=15)
+        self.Mutual = Button(frame, text="Clck before start  to expand crawling to all friends", command=self.mutual)
+        self.Mutual.pack( padx=15, pady=15, ipadx=15, ipady=15)
+        self.logged = Button(frame, text="Start, click on it only after login", command=self.loggedCall)
+        self.logged.pack ( padx=15, pady=15, ipadx=15, ipady=15)   
         self.stop = Button(frame, text="STOP and Save", fg="red", command=self.stop)
-        self.stop.pack(side=LEFT)
+        self.stop.pack( padx=15, pady=15, ipadx=15, ipady=15)
  
-        self.button = Button(frame, text="QUIT", fg="red", command=frame.quit)
-        self.button.pack(side=LEFT)
-    def handle_my_custom_event(event):
-        frame.quit
 
  
-    def say_hi(self):
+    def loggedCall (self):
+        #disable Mutual
+        self.Mutual.config(state="disabled")
         def callback():
+            global end
+            self.explain.config(text='User friends downloading') 
             friends=scrape_1st_degrees()
+            self.explain.config(text='downloading friends') 
+            self.tick()
             scrape_friends(friends)
+            end=True
         t = threading.Thread(target=callback)
         t.start()
-
+        #disable himself
+        self.logged.config(state="disabled")
         
-
+    def tick(self):
+        global browser
+        global root
+        self.explain.config(text="friends dowload %d" % idx) 
+        if end:
+            browser.close()
+            root.quit()
+        else:
+            self.explain.after(1000,self.tick)
+ 
     def mutual(self):
         global mutualOnly
         mutualOnly=0
@@ -42,7 +56,8 @@ class App:
     def stop(self):
         global stop
         stop=True
-
+        end=True
+ 
 # --------------- Ask user to log in -----------------
 def fb_login():
     print("Opening browser...")
@@ -58,8 +73,10 @@ def scroll_to_bottom():
             height = browser.execute_script("return document.body.scrollHeight")
             if  last_height == height :
                 print("%d steps, Blocked! at size %d" % (sleeps, last_height))
-                if  sleeps >100 :   #25 seconds 
+                if  sleeps >20 :   #10 seconds 
                     break
+            else:
+                sleeps=0
             last_height = height
             try:
                 browser.find_element_by_class_name('_4khu') # class after friend's list
@@ -67,7 +84,7 @@ def scroll_to_bottom():
                 break
             except:
                 browser.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-                time.sleep(0.25)
+                time.sleep(0.5)
                 sleeps+=1
                 pass
 
@@ -130,6 +147,7 @@ def scrape_1st_degrees():
 #This can take several days if you have a lot of friends!!
 def scrape_friends(friends):
     global stop
+    global idx
     idx=1
     myfriends=list(friends.keys())
     for friend in myfriends :
@@ -145,8 +163,8 @@ def scrape_friends(friends):
         #Scan your friends' Friends page (2nd-degree connections)
         idx+=1 
         print("%d) %s" % (idx, friends[friend]+"--"+ scrape_url))
-        if idx>4:
-            break
+        #if idx>4:
+        #    break
         scroll_to_bottom()
         their_friends = scan_friends()
 
@@ -183,10 +201,12 @@ userId=""
 edges=[]
 mutualOnly =1
 stop=False
+end=False
+idx=0
 now = datetime.now()
 fb_login()
 root = Tk()
-
+root.title("Facebook Scraper")
 
 app = App(root)
 

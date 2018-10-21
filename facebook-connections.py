@@ -194,7 +194,14 @@ wd_options = Options()
 wd_options.add_argument("--disable-notifications")
 wd_options.add_argument("--disable-infobars")
 wd_options.add_argument("--mute-audio")
-browser = webdriver.Chrome(chrome_options=wd_options)
+
+if getattr(sys, 'frozen', False): 
+    # executed as a bundled exe, the driver is in the extracted folder
+    chromedriver_path = os.path.join(sys._MEIPASS, "chromedriver.exe")
+    browser = webdriver.Chrome(chromedriver_path,chrome_options=wd_options)
+else:
+    # executed as a simple script, the driver should be in `PATH`
+    browser = webdriver.Chrome(chrome_options=wd_options)
 user=""
 userName=""
 userId=""
